@@ -7,7 +7,6 @@ const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const jsf = require('json-schema-generator'); // Library to generate JSON Schema from JSON
 const swaggerJSDoc = require('swagger-jsdoc');
-const ngrok = require("@ngrok/ngrok");
 
 
 const app = express();
@@ -431,11 +430,20 @@ app.get('/api', async (req, res) => {
 
 });
 
-app.get('/api/v1/projects', async (req, res) => {
+app.post('/api/v1/projects', async (req, res) => {
+
+    const { userId } = req.body;
     
+    // let { data, error } = await supabase
+    // .from('projects')
+    // .select('*')
+
     let { data, error } = await supabase
     .from('projects')
-    .select('*')
+    .select("*")
+
+    // Filters
+    .eq('user_id', userId)
             
     if (error) {
       return res.status(500).json({ error: error.message });
@@ -576,6 +584,35 @@ app.post('/api/v1/documentations/:docId/add/schema', async (req, res) => {
   }
 });
 
+app.post('/api/v1/user', async (req, res) => {
+  const inputData = req.body;
+
+  console.log(inputData)
+
+  try {
+    
+      const { data, error } = await supabase
+      .from('users')
+      .insert([
+        { user_id: inputData.id, username: inputData.username, email: inputData.email, firstname: inputData.firstName, lastname: inputData.lastName, image: inputData.image, password_hash: '12345' },
+      ])
+      .select()
+        
+            
+
+    if (error) {
+      console.error('Supabase Error:', error);
+      return res.status(500).json({ error: error.message });
+    } else {
+      console.log('Data:', data);
+      return res.status(201).json(data);
+    }
+  } catch (err) {
+    console.error('Fetch Error:', err);
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.get('/test', async (req, res) => {
   const { url, apikey, Authorization, input } = req.body;
 
@@ -606,9 +643,4 @@ app.get('/test', async (req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, async() => {
   console.log(`Server is running on http://localhost:${PORT}`);
-  // Establish connectivity
-  const listener = await ngrok.forward({ addr: 8080, '2qQCvNqgw5JMFnVbGmpuhY0liWS_LCriAhkbCC15frDVnbre': true });
-
-  // Output ngrok url to console
-  console.log(`Ingress established at: ${listener.url()}`);
 });
